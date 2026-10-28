@@ -1,0 +1,23 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "dev": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        ".env*",
+        "!src/__tests__/**",
+        "$TURBO_ROOT$/packages/shared/dist/**"
+      ]
+    },
+    "dev:docker": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        ".env*",
+        "!src/__tests__/**",
+        "$TURBO_ROOT$/packages/shared/dist/**",
+        "$TURBO_ROOT$/docker-compose.yml"
+      ]
+    }
+  }
+}

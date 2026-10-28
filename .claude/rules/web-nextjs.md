@@ -43,10 +43,12 @@ Heed deprecation notices and dev-overlay insights; they name the fix.
 ## Project conventions
 
 - **Types**: import domain and API types from `@rme/shared` (`Character`, `CharacterFilters`, `CharactersResponse`, `ApiError`, …). Never redeclare them locally. If the contract must change, change `packages/shared`.
-- **API calls** go only through `src/lib/api-client.ts`, using `API_URL` from `NEXT_PUBLIC_API_URL`.
-  - The API needs a bearer token from `POST /auth/token`; the token lives in the Zustand store.
-  - Non-2xx responses carry an `ApiError` body. Surface `message`, and fetch a fresh token on a 401.
-- **Client state**: use Zustand (`src/store/explorer-store.ts`) only for client-side state such as filters, favorites and the token.
+- **API calls happen on the Next.js server only.** The browser never calls the Express API or the Rick & Morty API.
+  - Use `src/lib/api-client.ts` (server-side, `API_URL` from the server-only `API_URL` env var) from data-layer modules in `src/lib/` (e.g. `characters.ts`, marked `import 'server-only'`). Server Components, Route Handlers and Server Actions call the data layer.
+  - The API needs a bearer token from `POST /auth/token`. `src/proxy.ts` issues it and stores it in the httpOnly `rme_session` session cookie (`src/lib/session.ts`); the data layer reads it with `cookies()`. Never put the token in Zustand, `localStorage` or a `NEXT_PUBLIC_*` var.
+  - Client components that need data go through a Next Route Handler or Server Action, never straight to the API.
+  - Non-2xx responses throw `ApiRequestError` carrying the `ApiError` body. On a 401, fetch a fresh token and retry once.
+- **Client state**: use Zustand (`src/store/explorer-store.ts`) only for client-side state such as filters and favorites.
   - Read it with selectors, e.g. `useExplorerStore((s) => s.filters)`. Use `useShallow` when you select several fields.
   - Server Components never read the store, because it's per-browser state.
 - **Analytics**: call `trackEvent()` from `src/lib/analytics.ts` and never `sendGAEvent` directly. It's a no-op without `NEXT_PUBLIC_GA_ID`.

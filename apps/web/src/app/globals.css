@@ -1,48 +1,81 @@
 @import 'tailwindcss';
 
-/* Theme tokens: light mode defaults */
-:root {
-  --background: #f7f9f4;
-  --foreground: #13201a;
-  --surface: #ffffff;
-  --muted: #5b6b62;
-  --portal: #97ce4c;
-  --portal-strong: #5f9a1c;
-  --space: #0b1d2a;
-  --accent: #f0e14a;
-  --danger: #e4572e;
+/* Portal Intelligence theme (dark only). Spec: .claude/rules/web-design.md */
+@theme {
+  --color-surface-container-lowest: #060e20;
+  --color-background: #0b1326;
+  --color-surface: #0b1326;
+  --color-surface-container-low: #131b2e;
+  --color-surface-container: #171f33;
+  --color-surface-container-high: #222a3d;
+  --color-surface-container-highest: #2d3449;
+  --color-surface-bright: #31394d;
+  --color-on-surface: #dae2fd;
+  --color-on-surface-variant: #bbcabf;
+  --color-outline: #86948a;
+  --color-outline-variant: #334155;
+  --color-primary: #4edea3;
+  --color-primary-container: #10b981;
+  --color-on-primary-container: #0b1326;
+  --color-secondary: #4cd7f6;
+  --color-secondary-container: #004e5c;
+  --color-on-secondary-container: #acedff;
+  --color-tertiary: #c0c1ff;
+  --color-tertiary-container: #9699ff;
+  --color-error: #ffb4ab;
+  --color-error-container: #93000a;
+  --color-on-error-container: #ffdad6;
+  --color-status-alive: #10b981;
+  --color-status-dead: #f43f5e;
+  --color-status-unknown: #f59e0b;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0b1d2a;
-    --foreground: #e8f1ea;
-    --surface: #12293a;
-    --muted: #9fb3a8;
-    --portal: #a8e05f;
-    --portal-strong: #97ce4c;
-    --space: #050f17;
-    --accent: #f5e86b;
-    --danger: #ff7a59;
-  }
-}
-
-/* Expose tokens as Tailwind utilities: bg-portal, text-muted, bg-surface, ... */
+/* Fonts come from the next/font variables set on <html> in layout.tsx */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-surface: var(--surface);
-  --color-muted: var(--muted);
-  --color-portal: var(--portal);
-  --color-portal-strong: var(--portal-strong);
-  --color-space: var(--space);
-  --color-accent: var(--accent);
-  --color-danger: var(--danger);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-headline: var(--font-plus-jakarta-sans);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
+}
+
+:root {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--color-background);
+  color: var(--color-on-surface);
+}
+
+/* Canvas glow: soft primary, secondary and tertiary light over the dark background. A fixed layer
+   (not background-attachment: fixed, which iOS ignores) so it stays put while the list scrolls. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      60% 50% at 0% 0%,
+      color-mix(in oklab, var(--color-primary) 14%, transparent),
+      transparent
+    ),
+    radial-gradient(
+      50% 45% at 100% 20%,
+      color-mix(in oklab, var(--color-secondary) 10%, transparent),
+      transparent
+    ),
+    radial-gradient(
+      70% 50% at 50% 100%,
+      color-mix(in oklab, var(--color-tertiary) 8%, transparent),
+      transparent
+    );
+}
+
+/* A modal <dialog> (e.g. the filter drawer) already makes the page inert; this also stops it from
+   scrolling. The scrollbar's space stays reserved, so the layout doesn't shift. The lock holds
+   until the dialog closes, which is after its exit animation. */
+html:has(dialog:modal) {
+  overflow: hidden;
+  scrollbar-gutter: stable;
 }

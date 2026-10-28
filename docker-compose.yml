@@ -10,7 +10,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env (see .env.example)}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
-      RICK_MORTY_GRAPHQL_URL: https://rickandmortyapi.com/graphql
+      RICK_MORTY_GRAPHQL_URL: ${RICK_MORTY_GRAPHQL_URL:-https://rickandmortyapi.com/graphql}
     healthcheck:
       test:
         [

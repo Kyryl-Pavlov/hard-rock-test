@@ -10,7 +10,8 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "turbo run dev",
+    "dev": "turbo watch dev --filter=@rme/web --filter=@rme/api",
+    "dev:docker": "turbo watch @rme/web#dev @rme/api#dev:docker",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",

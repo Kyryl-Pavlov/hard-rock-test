@@ -43,7 +43,7 @@ Follow `.claude/rules/api-express.md` and `.claude/rules/shared-contract.md`. Th
 ## 5. Docs and consumer
 
 - Add or update the row in the README's **API endpoints** table.
-- If the web app consumes the endpoint, add or implement the function in `apps/web/src/lib/api-client.ts`:
+- If the web app consumes the endpoint, add or implement the function in `apps/web/src/lib/api-client.ts`. It runs on the Next.js server only (server-only `API_URL`); the token comes from the `rme_session` cookie via a data-layer function in `apps/web/src/lib/`:
   - Signature: `(token, input) => Promise<SharedType>`. Serialise the filters to `URLSearchParams`, skipping `undefined`.
   - Send `Authorization: Bearer <token>`.
   - On a non-2xx response, throw an error that carries the `ApiError` body.
