@@ -1,0 +1,48 @@
+@import 'tailwindcss';
+
+/* Theme tokens: light mode defaults */
+:root {
+  --background: #f7f9f4;
+  --foreground: #13201a;
+  --surface: #ffffff;
+  --muted: #5b6b62;
+  --portal: #97ce4c;
+  --portal-strong: #5f9a1c;
+  --space: #0b1d2a;
+  --accent: #f0e14a;
+  --danger: #e4572e;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0b1d2a;
+    --foreground: #e8f1ea;
+    --surface: #12293a;
+    --muted: #9fb3a8;
+    --portal: #a8e05f;
+    --portal-strong: #97ce4c;
+    --space: #050f17;
+    --accent: #f5e86b;
+    --danger: #ff7a59;
+  }
+}
+
+/* Expose tokens as Tailwind utilities: bg-portal, text-muted, bg-surface, ... */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-muted: var(--muted);
+  --color-portal: var(--portal);
+  --color-portal-strong: var(--portal-strong);
+  --color-space: var(--space);
+  --color-accent: var(--accent);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
