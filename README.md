@@ -2,7 +2,7 @@
 
 A small web app for browsing the [Rick and Morty GraphQL API](https://rickandmortyapi.com/graphql) (public, no auth).
 
-> **Status:** early. The home page lists, searches and filters characters, and each character has a profile page; favorites are still `TODO`.
+> **Status:** early. The home page lists, searches and filters characters, and each character has a profile page;
 
 ## Features
 
