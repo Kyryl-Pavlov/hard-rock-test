@@ -2,10 +2,13 @@ import type { ReactNode } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CharactersCrumbLink } from '@/components/character-profile/characters-crumb-link';
+import { trackEvent } from '@/lib/analytics';
 import { useExplorerStore } from '@/store/explorer-store';
 
 const back = jest.fn();
 const push = jest.fn();
+
+jest.mock('@/lib/analytics', () => ({ trackEvent: jest.fn() }));
 
 jest.mock('next/navigation', () => ({ useRouter: () => ({ back, push }) }));
 
@@ -59,6 +62,10 @@ describe('CharactersCrumbLink', () => {
 
     expect(back).toHaveBeenCalledTimes(1);
     expect(push).not.toHaveBeenCalled();
+    expect(trackEvent).toHaveBeenCalledWith('breadcrumb_clicked', {
+      target: 'characters',
+      mode: 'history_back',
+    });
   });
 
   it('links to the list after a direct visit', async () => {
@@ -71,5 +78,9 @@ describe('CharactersCrumbLink', () => {
 
     expect(back).not.toHaveBeenCalled();
     expect(push).toHaveBeenCalledWith('/');
+    expect(trackEvent).toHaveBeenCalledWith('breadcrumb_clicked', {
+      target: 'characters',
+      mode: 'link',
+    });
   });
 });

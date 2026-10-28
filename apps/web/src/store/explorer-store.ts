@@ -134,6 +134,7 @@ export const useExplorerStore = create<ExplorerState>()(
           if (page > 1) trackEvent('characters_page_loaded', { page });
         } catch {
           set((s) => ({ status: { ...s.status, [key]: 'error' } }));
+          trackEvent('characters_load_failed', { page });
         }
       }
 
@@ -208,6 +209,7 @@ export const useExplorerStore = create<ExplorerState>()(
 
           try {
             storeProfile(await fetchCharacterProfile(id));
+            trackEvent('character_profile_prefetched', { id });
           } catch {
             // Only a head start: the profile page renders from the server either way.
             set((s) => ({ profileStatus: { ...s.profileStatus, [id]: 'error' } }));

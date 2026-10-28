@@ -2,6 +2,7 @@
 
 import { useEffect, useEffectEvent, useRef } from 'react';
 import type { Character } from '@rme/shared';
+import { useAnalytics } from '@/lib/use-analytics';
 import type { QueryStatus } from '@/store/explorer-store';
 import { CharacterCard } from './character-card';
 import { CharacterCardSkeleton } from './character-card-skeleton';
@@ -28,6 +29,7 @@ export function CharacterList({
   onLoadMore,
 }: CharacterListProps) {
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const analytics = useAnalytics();
 
   const onSentinelVisible = useEffectEvent(() => onLoadMore());
 
@@ -85,12 +87,26 @@ export function CharacterList({
             <p role="alert" className="text-sm text-error">
               Couldn&apos;t load more characters.
             </p>
-            <LoadButton onClick={onLoadMore}>Retry</LoadButton>
+            <LoadButton
+              onClick={() => {
+                analytics.list.retryClicked('next_page');
+                onLoadMore();
+              }}
+            >
+              Retry
+            </LoadButton>
           </>
         ) : null}
 
         {status === 'idle' && hasMore ? (
-          <LoadButton onClick={onLoadMore}>Load more</LoadButton>
+          <LoadButton
+            onClick={() => {
+              analytics.list.loadMoreClicked(characters.length, total);
+              onLoadMore();
+            }}
+          >
+            Load more
+          </LoadButton>
         ) : null}
       </div>
     </div>

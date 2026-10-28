@@ -1,6 +1,9 @@
 import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BackToTopButton } from '@/components/layout/back-to-top-button';
+import { trackEvent } from '@/lib/analytics';
+
+jest.mock('@/lib/analytics', () => ({ trackEvent: jest.fn() }));
 
 const VIEWPORT_HEIGHT = 800;
 
@@ -28,6 +31,7 @@ beforeEach(() => {
 afterEach(() => {
   window.scrollTo = originalScrollTo;
   window.matchMedia = originalMatchMedia;
+  jest.mocked(trackEvent).mockReset();
 });
 
 describe('BackToTopButton', () => {
@@ -76,6 +80,7 @@ describe('BackToTopButton', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Back to top' }));
 
     expect(window.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
+    expect(trackEvent).toHaveBeenCalledWith('back_to_top_clicked', { scroll_depth: 2 });
   });
 
   it('jumps without animation when reduced motion is preferred', async () => {

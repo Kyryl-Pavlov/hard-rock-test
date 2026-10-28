@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useAnalytics } from '@/lib/use-analytics';
 import { useExplorerStore } from '@/store/explorer-store';
 
 // The "Characters" breadcrumb. When the profile was opened from the list, it goes back in history,
@@ -9,6 +10,7 @@ import { useExplorerStore } from '@/store/explorer-store';
 // keeps the previous route alive). Otherwise (a direct visit or a reload) it links to the list.
 export function CharactersCrumbLink() {
   const router = useRouter();
+  const analytics = useAnalytics();
   const origin = useExplorerStore((s) => s.profileOrigin);
 
   return (
@@ -16,6 +18,7 @@ export function CharactersCrumbLink() {
       href={origin ?? '/'}
       // Only called for in-app navigations, so opening the link in a new tab still works.
       onNavigate={(event) => {
+        analytics.breadcrumbs.charactersClicked(origin === null ? 'link' : 'history_back');
         if (origin === null) return;
         event.preventDefault();
         router.back();

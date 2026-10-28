@@ -51,7 +51,10 @@ Heed deprecation notices and dev-overlay insights; they name the fix.
 - **Client state**: use Zustand (`src/store/explorer-store.ts`) only for client-side state such as filters and favorites.
   - Read it with selectors, e.g. `useExplorerStore((s) => s.filters)`. Use `useShallow` when you select several fields.
   - Server Components never read the store, because it's per-browser state.
-- **Analytics**: call `trackEvent()` from `src/lib/analytics.ts` and never `sendGAEvent` directly. It's a no-op without `NEXT_PUBLIC_GA_ID`.
+- **Analytics**: never call `sendGAEvent` directly. Every event and its params are declared in `AnalyticsEvents` in `src/lib/analytics.ts`, so a new event starts there.
+  - Components send events through the presets from `useAnalytics()` (`src/lib/use-analytics.ts`), e.g. `analytics.filterDrawer.closed('backdrop')`. Add a preset for a new UI event.
+  - Non-React code (the explorer store) calls the typed `trackEvent()` directly.
+  - Both are no-ops without `NEXT_PUBLIC_GA_ID`. In tests, `jest.mock('@/lib/analytics', () => ({ trackEvent: jest.fn() }))` also catches preset calls.
 - **Env**: only `NEXT_PUBLIC_*` vars reach the browser, and they're inlined at build time. To add one, use the `add-env-var` skill.
 - **Imports**: use `@/…` for anything under `src/`. Relative imports are only for siblings.
 - **Files**:

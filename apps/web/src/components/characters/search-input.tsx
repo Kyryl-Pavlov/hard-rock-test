@@ -2,6 +2,7 @@
 
 import { useId } from 'react';
 import { Icon } from '@/components/icons/icon';
+import { useAnalytics } from '@/lib/use-analytics';
 import { useDebouncedText } from '@/lib/use-debounced-text';
 
 interface SearchInputProps {
@@ -13,7 +14,13 @@ interface SearchInputProps {
 // Name search. Commits after a short pause in typing, or right away on Enter or Clear.
 export function SearchInput({ value, onCommit }: SearchInputProps) {
   const id = useId();
-  const [text, setText] = useDebouncedText(value, onCommit);
+  const analytics = useAnalytics();
+  const [text, setText] = useDebouncedText(value, (name, immediate) => {
+    // Clearing is tracked by its own event; re-committing the current term isn't a new search.
+    const term = name.trim();
+    if (term && term !== value) analytics.search.submitted(term, immediate ? 'enter' : 'typing');
+    onCommit(name);
+  });
 
   return (
     <div className="relative flex min-w-0 flex-1 items-center">
@@ -40,7 +47,10 @@ export function SearchInput({ value, onCommit }: SearchInputProps) {
         <button
           type="button"
           aria-label="Clear search"
-          onClick={() => setText('', true)}
+          onClick={() => {
+            analytics.search.cleared();
+            setText('', true);
+          }}
           className="absolute right-1.5 flex size-8 items-center justify-center rounded-lg border border-transparent text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-primary/20 focus-visible:outline-none"
         >
           <Icon name="close" className="size-4" />
