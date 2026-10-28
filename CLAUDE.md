@@ -2,7 +2,7 @@
 
 Monorepo (Turborepo + npm workspaces) for a web app that browses the public [Rick and Morty GraphQL API](https://rickandmortyapi.com/graphql). It has a Next.js 16 / React 19 frontend and an Express 5 + TypeScript API, and the two share types through `@rme/shared`.
 
-**Status: early.** The home page lists characters as cards with infinite scroll, a name search and status/species/gender/type filters (side panel on `lg`+, drawer below), with the Portal Intelligence theme. Filters live in the URL, and page 1 is server-rendered for them. Later pages and other filter sets load in the browser from the `GET /api/characters` Route Handler (`src/app/api/characters/route.ts`). Results are cached in the Zustand explorer store (persisted to sessionStorage) and in the browser HTTP cache (`private, max-age=300`). Every path goes Next.js server → `GET /characters` → GraphQL. Still `TODO`: favorites and profile pages.
+**Status: early.** The home page lists characters as cards with infinite scroll, a name search and status/species/gender/type filters (side panel on `lg`+, drawer below), with the Portal Intelligence theme. Filters live in the URL, and page 1 is server-rendered for them. Later pages and other filter sets load in the browser from the `GET /api/characters` Route Handler (`src/app/api/characters/route.ts`). Results are cached in the Zustand explorer store (persisted to sessionStorage) and in the browser HTTP cache (`private, max-age=300`). Clicking a card opens the server-rendered profile at `/characters/[id]` (every field the API has, plus breadcrumbs back to the list). Profiles are cached in three layers: the client router via `'use cache: private'` (`getCachedCharacter`), the explorer store (which the page's Suspense fallback renders from), and a hover/focus prefetch through `GET /api/characters/[id]` (HTTP cache). Every path goes Next.js server → `GET /characters` or `GET /characters/:id` → GraphQL. Still `TODO`: favorites.
 
 **Request flow:** the browser never calls the API. `apps/web/src/proxy.ts` gets a JWT from `POST /auth/token` and keeps it in the httpOnly `rme_session` session cookie; Server Components read it and call the API with `Authorization: Bearer` (see README "Request flow").
 
@@ -16,13 +16,13 @@ apps/
     src/app/                routes (App Router)
     src/components/<feature>/  reusable UI
     src/proxy.ts            issues/refreshes the API JWT in the httpOnly rme_session cookie
-    src/lib/                api-client.ts (server-only way to call the API), session.ts, characters.ts (data layer), character-filters.ts (URL ⇄ filters), character-page-client.ts (browser → /api/characters), analytics.ts
-    src/store/              explorer-store.ts (Zustand: filters, results cache, favorites; never the token)
+    src/lib/                api-client.ts (server-only way to call the API), session.ts, characters.ts (data layer), character-filters.ts (URL ⇄ filters), character-profile.ts (profile helpers), character-page-client.ts / character-profile-client.ts (browser → /api/characters[/id]), analytics.ts
+    src/store/              explorer-store.ts (Zustand: filters, results and profile caches, favorites; never the token)
     e2e/                    Playwright specs
   api/        @rme/api: Express API, port 4000, runs in Docker
     src/app.ts              createApp(): middleware, routers, 404, error handler
     src/config.ts           zod-validated env (the only reader of process.env)
-    src/routes/  src/services/  src/middleware/require-jwt.ts  src/auth/jwt.ts
+    src/routes/  src/services/  src/middleware/ (require-jwt.ts, require-scope.ts)  src/auth/jwt.ts
 packages/
   shared/     @rme/shared: web↔api contract (api.ts) and domain types (rick-morty.ts); consumers import its built dist/
   tsconfig/   @rme/tsconfig: shared TS configs

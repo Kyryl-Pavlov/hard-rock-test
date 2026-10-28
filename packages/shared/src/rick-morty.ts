@@ -29,6 +29,23 @@ export interface Episode {
   episode: string;
 }
 
+// A character's origin or last known location with its details. `id` is null, and `type` and
+// `dimension` are empty, when the API doesn't know the place.
+export interface LocationSummary extends LocationRef {
+  type: string;
+  dimension: string;
+}
+
+// Everything the API knows about one character.
+export interface CharacterDetail extends Character {
+  origin: LocationSummary;
+  location: LocationSummary;
+  // Every episode the character appears in, in air order. Singular, like the schema's field.
+  episode: Episode[];
+  // When the character was added to the API (ISO 8601).
+  created: string;
+}
+
 export interface Location {
   id: string;
   name: string;

@@ -2,7 +2,7 @@
 
 A small web app for browsing the [Rick and Morty GraphQL API](https://rickandmortyapi.com/graphql) (public, no auth).
 
-> **Status:** early. The home page lists, searches and filters characters; favorites and profile pages are still `TODO`.
+> **Status:** early. The home page lists, searches and filters characters, and each character has a profile page; favorites are still `TODO`.
 
 ## Features
 
@@ -11,6 +11,11 @@ A small web app for browsing the [Rick and Morty GraphQL API](https://rickandmor
 - **Caching**: results are cached per filter set in two client-side layers, so going back to a previous search is instant:
   - the Zustand explorer store, persisted to `sessionStorage` (10-minute TTL, 20 filter sets);
   - the browser HTTP cache, because `GET /api/characters` responds with `Cache-Control: private, max-age=300`.
+- **Character profile** (`/characters/[id]`): opens from a card. It shows everything the API knows about the character: status, species, type, gender, portrait, when it was indexed, its origin and last known location (with type and dimension), and every episode it appears in, grouped by season, with first and last appearance. It's server-rendered, and unknown ids show a not-found page. The "Characters" breadcrumb goes back to the list as you left it (filters, loaded pages and scroll) when you came from there, and links to `/` otherwise.
+- **Profile caching**: three layers, so an opened profile usually appears at once:
+  - the Next client router keeps a rendered profile in browser memory for 5 minutes (`'use cache: private'` in `getCachedCharacter`), so revisits and back/forward skip the server;
+  - the Zustand explorer store keeps profiles in `sessionStorage` (10-minute TTL, 50 profiles). While the server renders a profile, the page shows the stored copy, or the list card's data, instead of a skeleton;
+  - hovering or focusing a card prefetches its profile into the store from `GET /api/characters/[id]`, which responds with `Cache-Control: private, max-age=300`.
 
 ## Stack
 
@@ -43,11 +48,11 @@ The browser never calls the Express API or the Rick & Morty API. Every data requ
 ```
 browser ──▶ Next.js server ──Bearer JWT──▶ Express API ──GraphQL──▶ rickandmortyapi.com
             (proxy.ts, Server Components,   (apps/api)
-             /api/characters Route Handler)
+             /api/characters Route Handlers)
 ```
 
 1. **Token issue.** On each page request, `apps/web/src/proxy.ts` checks the `rme_session` cookie. If it's missing or the JWT expires within 60 seconds, the proxy requests a new token from `POST /auth/token` and stores it in the cookie. The cookie is `httpOnly`, `SameSite=Lax`, `Secure` in production, and a browser-session cookie with no max-age.
-2. **Data fetch.** Server Components render the first page for the filters in the URL. After that, the client loads later pages and other filter sets from the Next Route Handler `GET /api/characters` (`apps/web/src/app/api/characters/route.ts`). Both call the data layer (`apps/web/src/lib/characters.ts`). It reads the cookie and calls the API through `apps/web/src/lib/api-client.ts` with `Authorization: Bearer <jwt>`. On a 401 it gets a fresh token and retries once.
+2. **Data fetch.** Server Components render the first page for the filters in the URL, and the profile at `/characters/[id]`. After that, the client loads later pages and other filter sets from the Next Route Handler `GET /api/characters` (`apps/web/src/app/api/characters/route.ts`), and prefetches profiles from `GET /api/characters/[id]` (`apps/web/src/app/api/characters/[id]/route.ts`). All of them call the data layer (`apps/web/src/lib/characters.ts`). It reads the cookie and calls the API through `apps/web/src/lib/api-client.ts` with `Authorization: Bearer <jwt>`. On a 401 it gets a fresh token and retries once.
 3. **API.** Express verifies the JWT and its `characters:read` scope, validates the query, and queries the GraphQL API at `RICK_MORTY_GRAPHQL_URL`.
 
 Character images load through Next's image optimizer (`/_next/image`), so the browser doesn't fetch them from `rickandmortyapi.com` either.
@@ -94,20 +99,21 @@ Both modes use port 4000. Stop the container (`npm run docker:down`) before `npm
 
 ## API endpoints
 
-| Method | Path          | Auth                            | Description                                                                                         |
-| ------ | ------------- | ------------------------------- | --------------------------------------------------------------------------------------------------- |
-| GET    | `/health`     | -                               | Liveness check                                                                                      |
-| POST   | `/auth/token` | -                               | Issues an anonymous JWT access token (scope `characters:read`)                                      |
-| GET    | `/characters` | Bearer, scope `characters:read` | `Paginated<Character>`; query: `page`, `name`, `status`, `species`, `type`, `gender` (all optional) |
+| Method | Path              | Auth                            | Description                                                                                                                                |
+| ------ | ----------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| GET    | `/health`         | -                               | Liveness check                                                                                                                             |
+| POST   | `/auth/token`     | -                               | Issues an anonymous JWT access token (scope `characters:read`)                                                                             |
+| GET    | `/characters`     | Bearer, scope `characters:read` | `Paginated<Character>`; query: `page`, `name`, `status`, `species`, `type`, `gender` (all optional)                                        |
+| GET    | `/characters/:id` | Bearer, scope `characters:read` | `CharacterDetail`: every character field, origin and location with type and dimension, and all episodes; `404 not_found` for an unknown id |
 
 Errors are always `{ "error": "<code>", "message": "..." }`:
 
 | Status | `error`            | When                                       |
 | ------ | ------------------ | ------------------------------------------ |
-| 400    | `invalid_request`  | Invalid query params                       |
+| 400    | `invalid_request`  | Invalid query or path params               |
 | 401    | `unauthorized`     | Missing, invalid or expired token          |
 | 403    | `forbidden`        | Token lacks the required scope             |
-| 404    | `not_found`        | Unknown route                              |
+| 404    | `not_found`        | Unknown route or character                 |
 | 502    | `upstream_error`   | Rick & Morty API failed or returned errors |
 | 504    | `upstream_timeout` | Rick & Morty API timed out (10 s)          |
 | 500    | `internal_error`   | Anything unexpected                        |

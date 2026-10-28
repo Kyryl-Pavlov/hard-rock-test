@@ -1,4 +1,10 @@
-import type { ApiError, CharacterFilters, CharactersResponse, TokenResponse } from '@rme/shared';
+import type {
+  ApiError,
+  CharacterFilters,
+  CharacterResponse,
+  CharactersResponse,
+  TokenResponse,
+} from '@rme/shared';
 
 // Server-side only: used by src/proxy.ts and the data layer in src/lib. The browser never calls
 // the API, so API_URL is a server env var, not NEXT_PUBLIC_*. Don't import this from a client
@@ -45,4 +51,12 @@ export async function searchCharacters(
     cache: 'no-store',
   });
   return parseResponse<CharactersResponse>(res);
+}
+
+export async function fetchCharacter(token: string, id: string): Promise<CharacterResponse> {
+  const res = await fetch(`${API_URL}/characters/${encodeURIComponent(id)}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: 'no-store',
+  });
+  return parseResponse<CharacterResponse>(res);
 }

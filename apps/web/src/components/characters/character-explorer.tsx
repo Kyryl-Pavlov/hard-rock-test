@@ -10,7 +10,7 @@ import {
   filtersToSearchParams,
   normalizeFilters,
 } from '@/lib/character-filters';
-import { useExplorerStore } from '@/store/explorer-store';
+import { rehydrateExplorerStore, useExplorerStore } from '@/store/explorer-store';
 import { CharacterGridSkeleton } from './character-grid-skeleton';
 import { CharacterList } from './character-list';
 import { ExplorerToolbar } from './explorer-toolbar';
@@ -50,7 +50,7 @@ export function CharacterExplorer({ initialFilters, initialData }: CharacterExpl
   useEffect(() => {
     let cancelled = false;
     // Restore the sessionStorage cache first, so hydrate() can keep pages loaded before a reload.
-    void Promise.resolve(useExplorerStore.persist?.rehydrate()).then(() => {
+    void rehydrateExplorerStore().then(() => {
       if (!cancelled) useExplorerStore.getState().hydrate(initialFilters, initialData);
     });
     return () => {
