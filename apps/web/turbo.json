@@ -1,0 +1,15 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "dev": {
+      "inputs": [
+        "package.json",
+        "next.config.ts",
+        "tsconfig.json",
+        ".env*",
+        "$TURBO_ROOT$/packages/shared/dist/**"
+      ]
+    }
+  }
+}

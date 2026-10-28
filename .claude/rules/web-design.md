@@ -25,7 +25,7 @@ All UI in `apps/web` follows the Portal Intelligence theme: a dark-first, calm "
 | Token | Hex | Use |
 | --- | --- | --- |
 | `surface-container-lowest` | `#060e20` | overlay chips on images, deepest wells |
-| `background` / `surface` | `#0b1326` | page canvas, top bar (`/90` + blur) |
+| `background` / `surface` | `#0b1326` | page canvas (under the canvas glow), top bar (`/80`–`/90` + blur) |
 | `surface-container-low` | `#131b2e` | sidebar, sub-header band, card meta rows |
 | `surface-container` | `#171f33` | cards, inputs, neutral buttons |
 | `surface-container-high` | `#222a3d` | hover fill, popovers, image placeholder |
@@ -86,7 +86,7 @@ Section labels and meta keys are micro-labels: 10–11px, uppercase, `tracking-w
 
 - Radius: 8px (`rounded-lg`) for buttons, inputs, chips and pagination; 16px (`rounded-2xl`) for cards, panels and modals. Use `rounded-full` only for status badges, species chips, avatars and round icon toggles.
 - Depth comes from tonal layering plus hairline borders, not big shadows.
-  - L0: the `background` canvas.
+  - L0: the `background` canvas plus the canvas glow: a fixed `body::before` layer in `globals.css` with low-alpha `primary`, `secondary` and `tertiary` radial gradients. Page-level wrappers stay transparent; an opaque `bg-background` would hide the glow, so sticky bars use `bg-background/80` + blur.
   - L1: `surface-container` with a `border border-outline-variant` hairline.
   - L2 (popover, sticky header, dropdown): `surface-container-high` with `shadow-[0_10px_25px_-5px_rgb(0_0_0/0.45)]`.
   - L3 (modal): a `bg-background/75 backdrop-blur-sm` scrim.

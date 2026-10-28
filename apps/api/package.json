@@ -5,7 +5,8 @@
   "type": "commonjs",
   "main": "./dist/index.js",
   "scripts": {
-    "dev": "tsx watch --env-file-if-exists=.env src/index.ts",
+    "dev": "tsx --env-file-if-exists=../../.env --env-file-if-exists=.env src/index.ts",
+    "dev:docker": "docker compose -f ../../docker-compose.yml up --build api",
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/index.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",

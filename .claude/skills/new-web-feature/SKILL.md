@@ -18,7 +18,8 @@ Follow `.claude/rules/web-nextjs.md` and `.claude/rules/web-design.md`. They loa
 - Sketch the route segment (`src/app/<route>/page.tsx`, plus `layout.tsx`, `loading.tsx`, `error.tsx` and `not-found.tsx` as needed).
 - Mark each component as server or client. The page and its layout stay server components, and client components are the smallest interactive leaves: filter controls, the favorite toggle, search input.
 - Data flow in this scaffold:
-  - Data is fetched with a bearer token from `POST /auth/token`, which is held in the Zustand store. Data-loading components that use it are client components calling `src/lib/api-client.ts`.
+  - Data is fetched on the Next.js server only. Async Server Components call a `server-only` data-layer function in `src/lib/` (like `getCharacters` in `src/lib/characters.ts`), which reads the JWT from the httpOnly `rme_session` cookie and calls `src/lib/api-client.ts`. Since they read cookies, wrap them in `<Suspense>`.
+  - Interactive client components that need fresh data call a Next Route Handler or Server Action, never the Express API.
   - Static or URL-independent UI stays on the server so it lands in the static shell.
   - Put filters in the URL (`searchParams`) when the view should be shareable or bookmarkable, and mirror them into the store only if other client components need them.
 - Wrap every async or runtime-dependent subtree in `<Suspense>` with a skeleton fallback that matches the final layout.
