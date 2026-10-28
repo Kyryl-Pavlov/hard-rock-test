@@ -2,6 +2,8 @@
 
 import { useEffect, useEffectEvent, useId, useRef, useState, type ReactNode } from 'react';
 import { Icon } from '@/components/icons/icon';
+import type { DrawerCloseMethod } from '@/lib/analytics';
+import { useAnalytics } from '@/lib/use-analytics';
 
 // Matches Tailwind's `lg`, where the side panel replaces the drawer.
 const SIDE_PANEL_QUERY = '(min-width: 64rem)';
@@ -34,6 +36,7 @@ interface FilterDrawerProps {
 export function FilterDrawer({ open, onClose, total, children }: FilterDrawerProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
+  const analytics = useAnalytics();
   // Keeps the content rendered while the sheet slides out after `open` turns false.
   const [rendered, setRendered] = useState(open);
   if (open && !rendered) setRendered(true);
@@ -67,7 +70,14 @@ export function FilterDrawer({ open, onClose, total, children }: FilterDrawerPro
     };
   }, [open]);
 
-  const closeForSidePanel = useEffectEvent(() => onClose());
+  // Every way the user can close the sheet. The native close event below runs after these, so it
+  // isn't tracked again.
+  function closeBy(method: DrawerCloseMethod) {
+    analytics.filterDrawer.closed(method);
+    onClose();
+  }
+
+  const closeForSidePanel = useEffectEvent(() => closeBy('viewport'));
 
   // Close if the viewport grows into the side-panel layout while the drawer is open.
   useEffect(() => {
@@ -89,7 +99,7 @@ export function FilterDrawer({ open, onClose, total, children }: FilterDrawerPro
       // ignore preventDefault on a repeated Esc; the close event below covers that.
       onCancel={(e) => {
         e.preventDefault();
-        onClose();
+        closeBy('escape');
       }}
       onClose={(e) => {
         delete e.currentTarget.dataset.closing;
@@ -98,7 +108,7 @@ export function FilterDrawer({ open, onClose, total, children }: FilterDrawerPro
       }}
       // The content fills the dialog, so a click on the dialog itself is a click on the backdrop.
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) closeBy('backdrop');
       }}
       className={DIALOG_CLASS}
     >
@@ -111,7 +121,7 @@ export function FilterDrawer({ open, onClose, total, children }: FilterDrawerPro
             <button
               type="button"
               aria-label="Close filters"
-              onClick={onClose}
+              onClick={() => closeBy('close_button')}
               className="flex size-11 items-center justify-center rounded-lg border border-transparent text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-primary/20 focus-visible:outline-none"
             >
               <Icon name="close" />
@@ -125,7 +135,7 @@ export function FilterDrawer({ open, onClose, total, children }: FilterDrawerPro
           <div className="border-t border-outline-variant p-4">
             <button
               type="button"
-              onClick={onClose}
+              onClick={() => closeBy('show_results')}
               className="h-11 w-full rounded-lg border border-transparent bg-primary-container px-4 font-semibold text-on-primary-container hover:bg-primary-container/90 focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-primary/20 focus-visible:outline-none"
             >
               {total === null ? 'Show characters' : `Show ${total} characters`}

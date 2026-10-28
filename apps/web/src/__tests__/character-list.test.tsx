@@ -2,6 +2,9 @@ import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { Character } from '@rme/shared';
 import { CharacterList } from '@/components/characters/character-list';
+import { trackEvent } from '@/lib/analytics';
+
+jest.mock('@/lib/analytics', () => ({ trackEvent: jest.fn() }));
 
 function character(id: number): Character {
   return {
@@ -83,6 +86,8 @@ describe('CharacterList', () => {
     await scrollToEnd();
 
     expect(onLoadMore).toHaveBeenCalledTimes(1);
+    // Only the button counts as a click; the scroll load is tracked by the store.
+    expect(trackEvent).not.toHaveBeenCalled();
   });
 
   it('asks for the next page from the Load more button', async () => {
@@ -99,6 +104,7 @@ describe('CharacterList', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Load more' }));
 
     expect(onLoadMore).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('load_more_clicked', { loaded: 2, total: 5 });
   });
 
   it('shows placeholders and no Load more button while a page is loading', () => {
@@ -150,5 +156,6 @@ describe('CharacterList', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Retry' }));
 
     expect(onLoadMore).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('load_retry_clicked', { context: 'next_page' });
   });
 });

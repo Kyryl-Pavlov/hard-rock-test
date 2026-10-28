@@ -8,6 +8,7 @@ import {
   STATUS_OPTIONS,
   normalizeFilters,
 } from '@/lib/character-filters';
+import { useAnalytics } from '@/lib/use-analytics';
 import { useDebouncedText } from '@/lib/use-debounced-text';
 import { FilterChipGroup, type FilterChipOption } from './filter-chip-group';
 
@@ -42,10 +43,16 @@ interface FilterControlsProps {
 // the toolbar above the list so it stays visible on every screen size.
 export function FilterControls({ filters, onChange, onReset }: FilterControlsProps) {
   const id = useId();
-  const [type, setType] = useDebouncedText(filters.type ?? '', (value) =>
-    onChange({ type: value }),
-  );
-  const hasFilters = Object.keys(normalizeFilters(filters)).length > 0;
+  const analytics = useAnalytics();
+  const [type, setType] = useDebouncedText(filters.type ?? '', (value, immediate) => {
+    const trimmed = value.trim();
+    if (trimmed && trimmed !== filters.type) {
+      analytics.filters.typeEntered(trimmed, immediate ? 'enter' : 'typing');
+    }
+    onChange({ type: value });
+  });
+  // Includes the name search, which Reset clears too.
+  const filterCount = Object.keys(normalizeFilters(filters)).length;
 
   return (
     <div className="flex flex-col gap-6">
@@ -54,7 +61,10 @@ export function FilterControls({ filters, onChange, onReset }: FilterControlsPro
         name={`${id}-status`}
         options={STATUS_CHIPS}
         value={filters.status ?? ''}
-        onSelect={(value) => onChange({ status: STATUS_OPTIONS.find((s) => s === value) })}
+        onSelect={(value) => {
+          analytics.filters.statusSelected(value);
+          onChange({ status: STATUS_OPTIONS.find((s) => s === value) });
+        }}
       />
 
       <FilterChipGroup
@@ -62,7 +72,10 @@ export function FilterControls({ filters, onChange, onReset }: FilterControlsPro
         name={`${id}-species`}
         options={SPECIES_CHIPS}
         value={filters.species ?? ''}
-        onSelect={(value) => onChange({ species: value || undefined })}
+        onSelect={(value) => {
+          analytics.filters.speciesSelected(value);
+          onChange({ species: value || undefined });
+        }}
       />
 
       <div className="flex flex-col gap-2">
@@ -72,7 +85,10 @@ export function FilterControls({ filters, onChange, onReset }: FilterControlsPro
         <select
           id={`${id}-gender`}
           value={filters.gender ?? ''}
-          onChange={(e) => onChange({ gender: GENDER_OPTIONS.find((g) => g === e.target.value) })}
+          onChange={(e) => {
+            analytics.filters.genderSelected(e.target.value);
+            onChange({ gender: GENDER_OPTIONS.find((g) => g === e.target.value) });
+          }}
           className={FIELD_CLASS}
         >
           <option value="" className="bg-surface-container-high">
@@ -106,8 +122,11 @@ export function FilterControls({ filters, onChange, onReset }: FilterControlsPro
 
       <button
         type="button"
-        onClick={onReset}
-        disabled={!hasFilters}
+        onClick={() => {
+          analytics.filters.reset('panel', filterCount);
+          onReset();
+        }}
+        disabled={filterCount === 0}
         className="h-11 self-start rounded-lg border border-transparent px-3 text-sm font-semibold text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-primary/20 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-on-surface-variant md:h-10"
       >
         Reset filters

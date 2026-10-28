@@ -10,6 +10,7 @@ import {
   filtersToSearchParams,
   normalizeFilters,
 } from '@/lib/character-filters';
+import { useAnalytics } from '@/lib/use-analytics';
 import { rehydrateExplorerStore, useExplorerStore } from '@/store/explorer-store';
 import { CharacterGridSkeleton } from './character-grid-skeleton';
 import { CharacterList } from './character-list';
@@ -36,6 +37,7 @@ function syncUrl(filters: CharacterFilters) {
 // explorer store takes over, serving repeat queries from its cache (persisted per tab).
 export function CharacterExplorer({ initialFilters, initialData }: CharacterExplorerProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const analytics = useAnalytics();
   const { ready, storeFilters, queries, status, setFilters, loadNextPage } = useExplorerStore(
     useShallow((s) => ({
       ready: s.ready,
@@ -98,7 +100,10 @@ export function CharacterExplorer({ initialFilters, initialData }: CharacterExpl
             <p className="text-sm text-on-surface-variant">Couldn&apos;t load characters.</p>
             <button
               type="button"
-              onClick={() => void loadNextPage()}
+              onClick={() => {
+                analytics.list.retryClicked('first_page');
+                void loadNextPage();
+              }}
               className="h-11 rounded-lg border border-outline/50 bg-surface-container px-5 text-sm font-semibold text-on-surface transition-colors hover:border-secondary hover:bg-surface-container-high focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-primary/20 focus-visible:outline-none md:h-10"
             >
               Retry
@@ -115,7 +120,10 @@ export function CharacterExplorer({ initialFilters, initialData }: CharacterExpl
           <p className="text-sm text-on-surface-variant">No characters match these filters.</p>
           <button
             type="button"
-            onClick={resetFilters}
+            onClick={() => {
+              analytics.filters.reset('empty_state', Object.keys(filters).length);
+              resetFilters();
+            }}
             className="h-11 rounded-lg border border-outline/50 bg-surface-container px-5 text-sm font-semibold text-on-surface transition-colors hover:border-secondary hover:bg-surface-container-high focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-primary/20 focus-visible:outline-none md:h-10"
           >
             Reset filters
@@ -152,7 +160,10 @@ export function CharacterExplorer({ initialFilters, initialData }: CharacterExpl
           {/* Icon-only; the active filter count shows as a badge on the icon */}
           <button
             type="button"
-            onClick={() => setDrawerOpen(true)}
+            onClick={() => {
+              analytics.filterDrawer.opened(activeCount);
+              setDrawerOpen(true);
+            }}
             aria-haspopup="dialog"
             aria-label={activeCount > 0 ? `Filters (${activeCount})` : 'Filters'}
             className="relative flex size-11 shrink-0 items-center justify-center rounded-lg border border-outline/50 bg-surface-container text-on-surface transition-colors hover:border-secondary hover:bg-surface-container-high focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-primary/20 focus-visible:outline-none lg:hidden"

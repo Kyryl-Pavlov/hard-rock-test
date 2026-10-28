@@ -2,6 +2,13 @@ import { useState } from 'react';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { FilterDrawer } from '@/components/characters/filter-drawer';
+import { trackEvent } from '@/lib/analytics';
+
+jest.mock('@/lib/analytics', () => ({ trackEvent: jest.fn() }));
+
+afterEach(() => {
+  jest.resetAllMocks();
+});
 
 // jsdom doesn't implement modal dialogs; emulate the open attribute and the close event.
 beforeAll(() => {
@@ -47,6 +54,9 @@ describe('FilterDrawer', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Close filters' }));
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    // Once: the native close event that follows isn't tracked again.
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('filter_drawer_closed', { method: 'close_button' });
   });
 
   it('closes from the results button', async () => {
@@ -56,6 +66,7 @@ describe('FilterDrawer', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Show 42 characters' }));
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(trackEvent).toHaveBeenCalledWith('filter_drawer_closed', { method: 'show_results' });
   });
 
   it('closes on a click outside the sheet', async () => {
@@ -65,6 +76,7 @@ describe('FilterDrawer', () => {
     await userEvent.click(screen.getByRole('dialog'));
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(trackEvent).toHaveBeenCalledWith('filter_drawer_closed', { method: 'backdrop' });
   });
 
   it('closes on Escape', async () => {
@@ -74,6 +86,8 @@ describe('FilterDrawer', () => {
     fireEvent(screen.getByRole('dialog'), new Event('cancel', { cancelable: true }));
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('filter_drawer_closed', { method: 'escape' });
   });
 
   it('stays open with its content until the slide-out transition finishes', async () => {

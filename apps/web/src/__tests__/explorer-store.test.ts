@@ -155,6 +155,7 @@ describe('explorer store', () => {
     await store().setFilters({ status: 'Dead' });
     expect(store().status['status=Dead']).toBe('error');
     expect(store().queries['status=Dead']).toBeUndefined();
+    expect(trackEvent).toHaveBeenCalledWith('characters_load_failed', { page: 1 });
 
     fetchPage.mockResolvedValueOnce(page([9], null, 1));
     await store().loadNextPage();
@@ -224,6 +225,8 @@ describe('explorer store profiles', () => {
     expect(fetchProfile).toHaveBeenCalledWith('1');
     expect(store().profiles['1']?.character).toEqual(profile(1));
     expect(store().profileStatus['1']).toBe('idle');
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('character_profile_prefetched', { id: '1' });
   });
 
   it('prefetchProfile skips a profile the server already rendered', async () => {
@@ -261,6 +264,7 @@ describe('explorer store profiles', () => {
 
     expect(store().profileStatus['1']).toBe('error');
     expect(store().profiles['1']).toBeUndefined();
+    expect(trackEvent).not.toHaveBeenCalledWith('character_profile_prefetched', { id: '1' });
   });
 
   it(`keeps at most ${MAX_CACHED_PROFILES} profiles, evicting the oldest`, () => {

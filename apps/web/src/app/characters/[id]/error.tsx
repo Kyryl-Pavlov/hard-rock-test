@@ -1,15 +1,24 @@
 'use client';
 
+import { useEffect } from 'react';
 import { CharactersCrumbLink } from '@/components/character-profile/characters-crumb-link';
 import { BreadcrumbItem } from '@/components/layout/breadcrumb-item';
 import { Breadcrumbs } from '@/components/layout/breadcrumbs';
+import { useAnalytics } from '@/lib/use-analytics';
 
 export default function CharacterError({
+  error,
   reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const analytics = useAnalytics();
+
+  useEffect(() => {
+    analytics.errorBoundary.viewed('profile', error.digest);
+  }, [analytics, error]);
+
   return (
     <main className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col gap-6 px-4 py-6 md:px-6 lg:px-8 lg:py-10">
       <Breadcrumbs>
@@ -30,7 +39,10 @@ export default function CharacterError({
           </p>
           <button
             type="button"
-            onClick={reset}
+            onClick={() => {
+              analytics.errorBoundary.retryClicked('profile');
+              reset();
+            }}
             className="h-11 rounded-lg border border-transparent bg-primary-container px-4 font-semibold text-on-primary-container hover:bg-primary-container/90 focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-primary/20 focus-visible:outline-none md:h-10"
           >
             Try again

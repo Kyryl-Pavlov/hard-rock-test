@@ -16,7 +16,7 @@ apps/
     src/app/                routes (App Router)
     src/components/<feature>/  reusable UI
     src/proxy.ts            issues/refreshes the API JWT in the httpOnly rme_session cookie
-    src/lib/                api-client.ts (server-only way to call the API), session.ts, characters.ts (data layer), character-filters.ts (URL ⇄ filters), character-profile.ts (profile helpers), character-page-client.ts / character-profile-client.ts (browser → /api/characters[/id]), analytics.ts
+    src/lib/                api-client.ts (server-only way to call the API), session.ts, characters.ts (data layer), character-filters.ts (URL ⇄ filters), character-profile.ts (profile helpers), character-page-client.ts / character-profile-client.ts (browser → /api/characters[/id]), analytics.ts (typed event catalog), use-analytics.ts (UI event presets)
     src/store/              explorer-store.ts (Zustand: filters, results and profile caches, favorites; never the token)
     e2e/                    Playwright specs
   api/        @rme/api: Express API, port 4000, runs in Docker

@@ -1,7 +1,10 @@
 import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { SearchInput } from '@/components/characters/search-input';
+import { trackEvent } from '@/lib/analytics';
 import { TEXT_DEBOUNCE_MS } from '@/lib/use-debounced-text';
+
+jest.mock('@/lib/analytics', () => ({ trackEvent: jest.fn() }));
 
 describe('SearchInput', () => {
   const onCommit = jest.fn();
@@ -31,6 +34,7 @@ describe('SearchInput', () => {
     act(() => jest.advanceTimersByTime(TEXT_DEBOUNCE_MS));
     expect(onCommit).toHaveBeenCalledTimes(1);
     expect(onCommit).toHaveBeenCalledWith('rick');
+    expect(trackEvent).toHaveBeenCalledWith('search', { search_term: 'rick', trigger: 'typing' });
   });
 
   it('commits right away on Enter', async () => {
@@ -41,6 +45,17 @@ describe('SearchInput', () => {
     expect(onCommit).toHaveBeenCalledWith('morty');
     act(() => jest.advanceTimersByTime(TEXT_DEBOUNCE_MS));
     expect(onCommit).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('search', { search_term: 'morty', trigger: 'enter' });
+  });
+
+  it('does not track re-committing the current search as a new one', async () => {
+    const { user, input } = setup('rick');
+
+    await user.type(input, '{Enter}');
+
+    expect(onCommit).toHaveBeenCalledWith('rick');
+    expect(trackEvent).not.toHaveBeenCalled();
   });
 
   it('clears the search with the Clear button', async () => {
@@ -51,6 +66,8 @@ describe('SearchInput', () => {
 
     expect(input).toHaveValue('');
     expect(onCommit).toHaveBeenCalledWith('');
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('search_cleared', {});
   });
 
   it('follows outside changes such as Reset filters', () => {
