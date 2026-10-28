@@ -1,6 +1,6 @@
 // Contract between apps/web and apps/api.
 
-import type { Character, CharacterGender, CharacterStatus } from './rick-morty';
+import type { Character, CharacterDetail, CharacterGender, CharacterStatus } from './rick-morty';
 
 export interface PageInfo {
   count: number;
@@ -24,6 +24,8 @@ export interface CharacterFilters {
 }
 
 export type CharactersResponse = Paginated<Character>;
+
+export type CharacterResponse = CharacterDetail;
 
 export interface TokenResponse {
   accessToken: string;

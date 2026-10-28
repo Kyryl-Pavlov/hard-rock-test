@@ -21,7 +21,7 @@ const jetBrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Rick & Morty Explorer',
+  title: { default: 'Rick & Morty Explorer', template: '%s · Rick & Morty Explorer' },
   description: 'Browse characters, episodes and locations from the Rick & Morty universe.',
 };
 

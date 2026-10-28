@@ -1,11 +1,22 @@
-import type { Character, CharactersResponse } from '@rme/shared';
+import type { Character, CharacterDetail, CharactersResponse } from '@rme/shared';
+import { trackEvent } from '@/lib/analytics';
 import { fetchCharacterPage } from '@/lib/character-page-client';
-import { MAX_CACHED_QUERIES, QUERY_TTL_MS, useExplorerStore } from '@/store/explorer-store';
+import { fetchCharacterProfile } from '@/lib/character-profile-client';
+import {
+  MAX_CACHED_PROFILES,
+  MAX_CACHED_QUERIES,
+  PROFILE_TTL_MS,
+  QUERY_TTL_MS,
+  selectCachedCharacter,
+  useExplorerStore,
+} from '@/store/explorer-store';
 
 jest.mock('@/lib/character-page-client', () => ({ fetchCharacterPage: jest.fn() }));
+jest.mock('@/lib/character-profile-client', () => ({ fetchCharacterProfile: jest.fn() }));
 jest.mock('@/lib/analytics', () => ({ trackEvent: jest.fn() }));
 
 const fetchPage = jest.mocked(fetchCharacterPage);
+const fetchProfile = jest.mocked(fetchCharacterProfile);
 
 function character(id: number): Character {
   return {
@@ -25,11 +36,29 @@ function page(ids: number[], next: number | null, count = 10): CharactersRespons
   return { info: { count, pages: 3, next, prev: null }, results: ids.map(character) };
 }
 
+function profile(id: number): CharacterDetail {
+  return {
+    ...character(id),
+    origin: { id: null, name: 'unknown', type: '', dimension: '' },
+    location: { id: null, name: 'unknown', type: '', dimension: '' },
+    episode: [{ id: '1', name: 'Pilot', airDate: 'December 2, 2013', episode: 'S01E01' }],
+    created: '2017-11-04T18:48:46.250Z',
+  };
+}
+
 const store = () => useExplorerStore.getState();
 
 beforeEach(() => {
   sessionStorage.clear();
-  useExplorerStore.setState({ filters: {}, queries: {}, status: {}, ready: false });
+  useExplorerStore.setState({
+    filters: {},
+    queries: {},
+    status: {},
+    ready: false,
+    profiles: {},
+    profileStatus: {},
+    profileOrigin: null,
+  });
 });
 
 afterEach(() => {
@@ -167,11 +196,108 @@ describe('explorer store', () => {
     expect(keys).not.toContain('type=1');
   });
 
-  it('persists the results cache, not the filters, to sessionStorage', () => {
+  it('persists the results and profile caches, not the filters, to sessionStorage', () => {
     store().hydrate({ name: 'rick' }, page([1], null));
+    store().cacheProfile(profile(1));
 
     const saved = JSON.parse(sessionStorage.getItem('rme-explorer') ?? '{}');
-    expect(Object.keys(saved.state)).toEqual(['queries']);
+    expect(Object.keys(saved.state)).toEqual(['queries', 'profiles']);
     expect(saved.state.queries['name=rick'].characters).toHaveLength(1);
+    expect(saved.state.profiles['1'].character.name).toBe('Character 1');
+  });
+});
+
+describe('explorer store profiles', () => {
+  it('cacheProfile stores a server-rendered profile', () => {
+    store().cacheProfile(profile(1));
+
+    expect(store().profiles['1']?.character).toEqual(profile(1));
+  });
+
+  it('prefetchProfile fetches a profile once and caches it', async () => {
+    fetchProfile.mockResolvedValue(profile(1));
+
+    await store().prefetchProfile('1');
+    await store().prefetchProfile('1');
+
+    expect(fetchProfile).toHaveBeenCalledTimes(1);
+    expect(fetchProfile).toHaveBeenCalledWith('1');
+    expect(store().profiles['1']?.character).toEqual(profile(1));
+    expect(store().profileStatus['1']).toBe('idle');
+  });
+
+  it('prefetchProfile skips a profile the server already rendered', async () => {
+    store().cacheProfile(profile(1));
+
+    await store().prefetchProfile('1');
+
+    expect(fetchProfile).not.toHaveBeenCalled();
+  });
+
+  it('prefetchProfile ignores a second call while one is in flight', async () => {
+    fetchProfile.mockResolvedValue(profile(1));
+
+    await Promise.all([store().prefetchProfile('1'), store().prefetchProfile('1')]);
+
+    expect(fetchProfile).toHaveBeenCalledTimes(1);
+  });
+
+  it('prefetchProfile refetches once the cached profile has expired', async () => {
+    const now = Date.now();
+    const clock = jest.spyOn(Date, 'now').mockReturnValue(now);
+    fetchProfile.mockResolvedValue(profile(1));
+    await store().prefetchProfile('1');
+
+    clock.mockReturnValue(now + PROFILE_TTL_MS + 1);
+    await store().prefetchProfile('1');
+
+    expect(fetchProfile).toHaveBeenCalledTimes(2);
+  });
+
+  it('prefetchProfile marks a failed load as an error without caching anything', async () => {
+    fetchProfile.mockRejectedValueOnce(new Error('boom'));
+
+    await store().prefetchProfile('1');
+
+    expect(store().profileStatus['1']).toBe('error');
+    expect(store().profiles['1']).toBeUndefined();
+  });
+
+  it(`keeps at most ${MAX_CACHED_PROFILES} profiles, evicting the oldest`, () => {
+    const clock = jest.spyOn(Date, 'now');
+
+    for (let i = 1; i <= MAX_CACHED_PROFILES + 2; i++) {
+      clock.mockReturnValue(1_000_000 + i);
+      store().cacheProfile(profile(i));
+    }
+
+    const ids = Object.keys(store().profiles);
+    expect(ids).toHaveLength(MAX_CACHED_PROFILES);
+    expect(ids).toContain(String(MAX_CACHED_PROFILES + 2));
+    expect(ids).not.toContain('1');
+  });
+
+  it('openProfile remembers the list URL and tracks the event', () => {
+    store().openProfile('1', '/?status=Dead');
+
+    expect(store().profileOrigin).toBe('/?status=Dead');
+    expect(trackEvent).toHaveBeenCalledWith('character_profile_opened', { id: '1' });
+  });
+
+  it('does not persist the profile origin', () => {
+    store().openProfile('1', '/?status=Dead');
+    store().cacheProfile(profile(1));
+
+    const saved = JSON.parse(sessionStorage.getItem('rme-explorer') ?? '{}');
+    expect(saved.state.profileOrigin).toBeUndefined();
+  });
+
+  it('selectCachedCharacter prefers the profile, then a listed character', () => {
+    store().hydrate({}, page([1, 2], null));
+    store().cacheProfile(profile(2));
+
+    expect(selectCachedCharacter('1')(store())).toEqual(character(1));
+    expect(selectCachedCharacter('2')(store())).toEqual(profile(2));
+    expect(selectCachedCharacter('3')(store())).toBeNull();
   });
 });

@@ -4,7 +4,18 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { CharacterImageFallback } from './character-image-fallback';
 
-export function CharacterImage({ src, alt, sizes }: { src: string; alt: string; sizes: string }) {
+export function CharacterImage({
+  src,
+  alt,
+  sizes,
+  loading,
+}: {
+  src: string;
+  alt: string;
+  sizes: string;
+  // 'eager' for an image above the fold, such as the profile portrait.
+  loading?: 'eager' | 'lazy';
+}) {
   const [failed, setFailed] = useState(false);
 
   return (
@@ -17,6 +28,7 @@ export function CharacterImage({ src, alt, sizes }: { src: string; alt: string; 
           alt={alt}
           fill
           sizes={sizes}
+          loading={loading}
           className="object-cover"
           onError={() => setFailed(true)}
           // Catches images that errored before hydration, when onError wasn't attached yet

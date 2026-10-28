@@ -1,10 +1,13 @@
 import type {
   Character,
+  CharacterDetail,
   CharacterFilters,
   CharacterGender,
   CharactersResponse,
   CharacterStatus,
+  Episode,
   LocationRef,
+  LocationSummary,
 } from '@rme/shared';
 import { config } from '../config';
 import { UpstreamError, UpstreamTimeoutError } from './errors';
@@ -41,10 +44,52 @@ export const CHARACTERS_QUERY = /* GraphQL */ `
   }
 `;
 
+export const CHARACTER_QUERY = /* GraphQL */ `
+  query Character($id: ID!) {
+    character(id: $id) {
+      id
+      name
+      status
+      species
+      type
+      gender
+      image
+      created
+      origin {
+        id
+        name
+        type
+        dimension
+      }
+      location {
+        id
+        name
+        type
+        dimension
+      }
+      episode {
+        id
+        name
+        air_date
+        episode
+      }
+    }
+  }
+`;
+
 // Upstream shapes. Every field is optional/nullable because the public API returns nulls freely.
 interface UpstreamLocation {
   id?: string | null;
   name?: string | null;
+  type?: string | null;
+  dimension?: string | null;
+}
+
+interface UpstreamEpisode {
+  id?: string | null;
+  name?: string | null;
+  air_date?: string | null;
+  episode?: string | null;
 }
 
 interface UpstreamCharacter {
@@ -55,8 +100,10 @@ interface UpstreamCharacter {
   type?: string | null;
   gender?: string | null;
   image?: string | null;
+  created?: string | null;
   origin?: UpstreamLocation | null;
   location?: UpstreamLocation | null;
+  episode?: (UpstreamEpisode | null)[] | null;
 }
 
 interface UpstreamCharacters {
@@ -123,6 +170,35 @@ function toCharacter(c: UpstreamCharacter): Character | null {
     origin: toLocation(c.origin),
     location: toLocation(c.location),
   };
+}
+
+function toLocationSummary(loc: UpstreamLocation | null | undefined): LocationSummary {
+  return { ...toLocation(loc), type: loc?.type ?? '', dimension: loc?.dimension ?? '' };
+}
+
+function toEpisode(e: UpstreamEpisode | null): Episode | null {
+  if (!e?.id || !e.name) return null;
+  return { id: e.id, name: e.name, airDate: e.air_date ?? '', episode: e.episode ?? '' };
+}
+
+function toCharacterDetail(c: UpstreamCharacter): CharacterDetail | null {
+  const character = toCharacter(c);
+  if (!character) return null;
+  return {
+    ...character,
+    origin: toLocationSummary(c.origin),
+    location: toLocationSummary(c.location),
+    episode: (c.episode ?? []).map(toEpisode).filter((e): e is Episode => e !== null),
+    created: c.created ?? '',
+  };
+}
+
+// Resolves to null when no character has this id.
+export async function fetchCharacter(id: string): Promise<CharacterDetail | null> {
+  const data = await queryGraphQL<{ character?: UpstreamCharacter | null }>(CHARACTER_QUERY, {
+    id,
+  });
+  return data.character ? toCharacterDetail(data.character) : null;
 }
 
 export async function fetchCharacters(filters: CharacterFilters): Promise<CharactersResponse> {

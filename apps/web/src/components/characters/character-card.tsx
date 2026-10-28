@@ -1,12 +1,15 @@
 import type { Character } from '@rme/shared';
 import { CharacterImage } from './character-image';
+import { CharacterProfileLink } from './character-profile-link';
 import { StatusBadge } from './status-badge';
 
 export function CharacterCard({ character }: { character: Character }) {
   const { id, name, image, status, species, gender, origin, location } = character;
 
   return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-outline-variant bg-surface-container transition-colors duration-200 hover:border-primary/50">
+    // The whole card is clickable through the name's stretched link, which also carries the focus
+    // ring (via has-focus-visible) since the card itself isn't focusable.
+    <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-outline-variant bg-surface-container transition-colors duration-200 hover:border-primary/50 has-focus-visible:border-primary has-focus-visible:ring-3 has-focus-visible:ring-primary/20">
       <div className="relative h-56 w-full overflow-hidden bg-surface-container-high">
         <CharacterImage
           src={image}
@@ -25,7 +28,7 @@ export function CharacterCard({ character }: { character: Character }) {
       <div className="flex flex-1 flex-col gap-4 p-4 md:p-5">
         <div className="flex flex-col gap-1">
           <h2 className="truncate font-headline text-base font-semibold tracking-tight text-on-surface group-hover:text-primary">
-            {name}
+            <CharacterProfileLink id={id}>{name}</CharacterProfileLink>
           </h2>
           <p className="text-xs/[18px] text-on-surface-variant">
             {species} · {gender}
