@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Icon } from '@/components/icons/icon';
 import { useAnalytics } from '@/lib/use-analytics';
 import { useExplorerStore } from '@/store/explorer-store';
 
@@ -23,8 +24,9 @@ export function CharactersCrumbLink() {
         event.preventDefault();
         router.back();
       }}
-      className="shrink-0 rounded-lg px-1 py-0.5 transition-colors hover:text-primary focus-visible:text-primary focus-visible:ring-3 focus-visible:ring-primary/20 focus-visible:outline-none"
+      className="inline-flex shrink-0 items-center gap-1 rounded-lg px-1 py-0.5 transition-colors hover:text-primary focus-visible:text-primary focus-visible:ring-3 focus-visible:ring-primary/20 focus-visible:outline-none"
     >
+      <Icon name="arrowBack" className="size-4 shrink-0" />
       Characters
     </Link>
   );
