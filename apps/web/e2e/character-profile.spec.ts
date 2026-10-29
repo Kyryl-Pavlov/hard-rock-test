@@ -58,6 +58,18 @@ test('a direct visit server-renders the profile', async ({ page }) => {
 });
 
 // Needs the API running (npm run docker:up).
+test('the profile has a small logo header that links home', async ({ page }) => {
+  await page.goto('/characters/1');
+
+  const home = page.getByRole('banner').getByRole('link', { name: 'Rick & Morty Explorer home' });
+  await expect(home).toBeVisible();
+
+  await home.click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole('article').first()).toBeVisible();
+});
+
+// Needs the API running (npm run docker:up).
 test('hovering a card prefetches its profile through the Next server', async ({ page }) => {
   const apiRequests = watchApiRequests(page);
   await page.setViewportSize({ width: 1280, height: 900 });
